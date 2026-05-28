@@ -137,12 +137,12 @@ jobs:
             --tag ghcr.io/${REPO_LOWER}/calendo-backend:latest \
             ./backend
 
-      - name: Keyless signing of Backend Docker image
-        run: |
-          export COSIGN_EXPERIMENTAL=1
-          REPO_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          cosign sign -y ghcr.io/${REPO_LOWER}/calendo-backend:${{ github.sha }}
-          cosign sign -y ghcr.io/${REPO_LOWER}/calendo-backend:latest
+      # - name: Keyless signing of Backend Docker image
+      #   run: |
+      #     export COSIGN_EXPERIMENTAL=1
+      #     REPO_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+      #     cosign sign -y ghcr.io/${REPO_LOWER}/calendo-backend:${{ github.sha }}
+      #     cosign sign -y ghcr.io/${REPO_LOWER}/calendo-backend:latest
 
   docker-ical-importer:
     needs: [build-and-test-ical-importer]
@@ -178,12 +178,12 @@ jobs:
             --tag ghcr.io/${REPO_LOWER}/calendo-ical-importer:latest \
             ./ical-importer
 
-      - name: Keyless signing of iCal Importer Docker image
-        run: |
-          export COSIGN_EXPERIMENTAL=1
-          REPO_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          cosign sign -y ghcr.io/${REPO_LOWER}/calendo-ical-importer:${{ github.sha }}
-          cosign sign -y ghcr.io/${REPO_LOWER}/calendo-ical-importer:latest
+      # - name: Keyless signing of iCal Importer Docker image
+      #   run: |
+      #     export COSIGN_EXPERIMENTAL=1
+      #     REPO_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+      #     cosign sign -y ghcr.io/${REPO_LOWER}/calendo-ical-importer:${{ github.sha }}
+      #     cosign sign -y ghcr.io/${REPO_LOWER}/calendo-ical-importer:latest
 
   docker-frontend:
     needs: [build-and-test-frontend]
@@ -219,12 +219,12 @@ jobs:
             --tag ghcr.io/${REPO_LOWER}/calendo-frontend:latest \
             ./frontend
 
-      - name: Keyless signing of Frontend Docker image
-        run: |
-          export COSIGN_EXPERIMENTAL=1
-          REPO_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          cosign sign -y ghcr.io/${REPO_LOWER}/calendo-frontend:${{ github.sha }}
-          cosign sign -y ghcr.io/${REPO_LOWER}/calendo-frontend:latest
+      # - name: Keyless signing of Frontend Docker image
+      #   run: |
+      #     export COSIGN_EXPERIMENTAL=1
+      #     REPO_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+      #     cosign sign -y ghcr.io/${REPO_LOWER}/calendo-frontend:${{ github.sha }}
+      #     cosign sign -y ghcr.io/${REPO_LOWER}/calendo-frontend:latest
 
   docker-image-generator:
     needs: [build-and-test-image-generator]
@@ -260,12 +260,12 @@ jobs:
             --tag ghcr.io/${REPO_LOWER}/calendo-image-generator:latest \
             ./image-generator
 
-      - name: Keyless signing of Image Generator Docker image
-        run: |
-          export COSIGN_EXPERIMENTAL=1
-          REPO_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          cosign sign -y ghcr.io/${REPO_LOWER}/calendo-image-generator:${{ github.sha }}
-          cosign sign -y ghcr.io/${REPO_LOWER}/calendo-image-generator:latest
+      # - name: Keyless signing of Image Generator Docker image
+      #   run: |
+      #     export COSIGN_EXPERIMENTAL=1
+      #     REPO_LOWER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+      #     cosign sign -y ghcr.io/${REPO_LOWER}/calendo-image-generator:${{ github.sha }}
+      #     cosign sign -y ghcr.io/${REPO_LOWER}/calendo-image-generator:latest
 
   deploy:
     needs: [docker-backend, docker-frontend, docker-ical-importer, docker-image-generator]
