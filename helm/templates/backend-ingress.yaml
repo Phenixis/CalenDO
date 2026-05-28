@@ -1,29 +1,40 @@
-{{- if and .Values.backend.enabled .Values.backend.ingress.enabled -}}
-{{- $fullName := include "calendo.backend.fullname" . -}}
-{{- $svcPort := .Values.backend.service.port -}}
-{{- if and .Values.backend.ingress.className (not (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion)) }}
-  {{- if not (hasKey .Values.backend.ingress.annotations "kubernetes.io/ingress.class") }}
-  {{- $_ := set .Values.backend.ingress.annotations "kubernetes.io/ingress.class" .Values.backend.ingress.className}}
-  {{- end }}
+{{- if and (or .Values.backend.enabled .Values.frontend.enabled) (or .Values.backend.ingress.enabled .Values.frontend.ingress.enabled) -}}
+{{- $fullName := include "calendo.ingress.fullname" . -}}
+{{- $backendSvcName := include "calendo.backend.fullname" . -}}
+{{- $frontendSvcName := include "calendo.frontend.fullname" . -}}
+{{- $backendSvcPort := .Values.backend.service.port -}}
+{{- $frontendSvcPort := .Values.frontend.service.port -}}
+{{- $backendIngress := .Values.backend.ingress -}}
+{{- $frontendIngress := .Values.frontend.ingress -}}
+{{- $routes := dict -}}
+{{- range $backendIngress.hosts }}
+  {{- $_ := set $routes .host (dict "backendPaths" .paths "frontendPaths" (list)) -}}
 {{- end }}
+{{- range $frontendIngress.hosts }}
+  {{- $existing := index $routes .host | default (dict "backendPaths" (list) "frontendPaths" (list)) -}}
+  {{- $_ := set $routes .host (dict "backendPaths" (index $existing "backendPaths") "frontendPaths" (concat (index $existing "frontendPaths") .paths)) -}}
+{{- end }}
+{{- $annotations := coalesce $backendIngress.annotations $frontendIngress.annotations (dict) -}}
+{{- $className := coalesce $backendIngress.className $frontendIngress.className -}}
+{{- $tls := coalesce $backendIngress.tls $frontendIngress.tls -}}
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: {{ $fullName }}
   labels:
-    {{- include "calendo.backend.labels" . | nindent 4 }}
-    app.kubernetes.io/component: backend
-  {{- with .Values.backend.ingress.annotations }}
+    {{- include "calendo.labels" . | nindent 4 }}
+    app.kubernetes.io/component: ingress
+  {{- with $annotations }}
   annotations:
     {{- toYaml . | nindent 4 }}
   {{- end }}
 spec:
-  {{- if and .Values.backend.ingress.className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
-  ingressClassName: {{ .Values.backend.ingress.className }}
+  {{- if and $className (semverCompare ">=1.18-0" .Capabilities.KubeVersion.GitVersion) }}
+  ingressClassName: {{ $className }}
   {{- end }}
-  {{- if .Values.backend.ingress.tls }}
+  {{- if $tls }}
   tls:
-    {{- range .Values.backend.ingress.tls }}
+    {{- range $tls }}
     - hosts:
         {{- range .hosts }}
         - {{ . | quote }}
@@ -32,11 +43,12 @@ spec:
     {{- end }}
   {{- end }}
   rules:
-    {{- range .Values.backend.ingress.hosts }}
-    - host: {{ .host | quote }}
+    {{- range $host := keys $routes | sortAlpha }}
+    {{- $route := index $routes $host }}
+    - host: {{ $host | quote }}
       http:
         paths:
-          {{- range .paths }}
+          {{- range index $route "backendPaths" }}
           - path: {{ .path }}
             {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
             pathType: {{ .pathType }}
@@ -44,12 +56,28 @@ spec:
             backend:
               {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
               service:
-                name: {{ $fullName }}
+                name: {{ $backendSvcName }}
                 port:
-                  number: {{ $svcPort }}
+                  number: {{ $backendSvcPort }}
               {{- else }}
-              serviceName: {{ $fullName }}
-              servicePort: {{ $svcPort }}
+              serviceName: {{ $backendSvcName }}
+              servicePort: {{ $backendSvcPort }}
+              {{- end }}
+          {{- end }}
+          {{- range index $route "frontendPaths" }}
+          - path: {{ .path }}
+            {{- if and .pathType (semverCompare ">=1.18-0" $.Capabilities.KubeVersion.GitVersion) }}
+            pathType: {{ .pathType }}
+            {{- end }}
+            backend:
+              {{- if semverCompare ">=1.19-0" $.Capabilities.KubeVersion.GitVersion }}
+              service:
+                name: {{ $frontendSvcName }}
+                port:
+                  number: {{ $frontendSvcPort }}
+              {{- else }}
+              serviceName: {{ $frontendSvcName }}
+              servicePort: {{ $frontendSvcPort }}
               {{- end }}
           {{- end }}
     {{- end }}

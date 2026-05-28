@@ -48,6 +48,10 @@ If release name contains chart name it will be used as a full name.
 {{- include "calendo.fullname" . }}-frontend
 {{- end }}
 
+{{- define "calendo.ingress.fullname" -}}
+{{- include "calendo.fullname" . }}-ingress
+{{- end }}
+
 {{- define "calendo.icalimporter.fullname" -}}
 {{- include "calendo.fullname" . }}-icalimporter
 {{- end }}
