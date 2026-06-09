@@ -16,6 +16,8 @@ export const usePWA = () => {
   const [isUpdateAvailable, setIsUpdateAvailable] = useState(false);
 
   useEffect(() => {
+    const hadControllerOnMount = Boolean(navigator.serviceWorker?.controller);
+
     // Check if app is already installed
     const checkIfInstalled = () => {
       if (window.matchMedia('(display-mode: standalone)').matches) {
@@ -47,30 +49,48 @@ export const usePWA = () => {
               const newWorker = registration.installing;
               if (newWorker) {
                 newWorker.addEventListener('statechange', () => {
-                  if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                  // Only prompt when a previous controller already existed (real update flow).
+                  if (newWorker.state === 'installed' && hadControllerOnMount) {
                     setIsUpdateAvailable(true);
                   }
                 });
               }
             });
 
-            navigator.serviceWorker.addEventListener('controllerchange', () => {
-              setIsUpdateAvailable(true);
-            });
+            const handleControllerChange = () => {
+              // Ignore first-time SW takeover on initial visit.
+              if (hadControllerOnMount) {
+                setIsUpdateAvailable(true);
+              }
+            };
+
+            navigator.serviceWorker.addEventListener('controllerchange', handleControllerChange);
+
+            return () => {
+              navigator.serviceWorker.removeEventListener('controllerchange', handleControllerChange);
+            };
           }
         } catch (error) {
           console.error('Error checking for updates:', error);
         }
       }
+
+      return undefined;
     };
 
     checkIfInstalled();
-    checkForUpdates();
+    let cleanupUpdates: (() => void) | undefined;
+    checkForUpdates().then((cleanup) => {
+      cleanupUpdates = cleanup;
+    });
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
     window.addEventListener('appinstalled', handleAppInstalled);
 
     return () => {
+      if (cleanupUpdates) {
+        cleanupUpdates();
+      }
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
       window.removeEventListener('appinstalled', handleAppInstalled);
     };
