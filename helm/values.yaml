@@ -261,7 +261,7 @@ cnpg:
     instances: 1
     primaryUpdateStrategy: unsupervised
   storage:
-    storageClass: ""
+    storageClass: "longhorn-single-replica"
     size: 1Gi
   database:
     name: calendo
