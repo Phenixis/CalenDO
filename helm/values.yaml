@@ -262,7 +262,7 @@ cnpg:
     primaryUpdateStrategy: unsupervised
   storage:
     storageClass: "longhorn-single-replica"
-    size: 1Gi
+    size: 256Mi
   database:
     name: calendo
     owner: calendo
