@@ -33,6 +33,8 @@ func RegisterRoutes(r *mux.Router) {
 
 	r.HandleFunc("/api/plannings/{id}/events", GetPlanningEventsHandler).Methods("GET")
 	r.HandleFunc("/api/plannings/{planningId}/events/{uid}", GetPlanningEventHandler).Methods("GET")
+
+	r.HandleFunc("/api/tram", GetTramHandler).Methods("GET")
 }
 
 // HealthCheckHandler godoc

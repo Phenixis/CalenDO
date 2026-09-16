@@ -3,11 +3,13 @@ module github.com/do2024-2047/CalenDO
 go 1.23.6
 
 require (
+	github.com/MobilityData/gtfs-realtime-bindings/golang/gtfs v1.0.0
 	github.com/google/uuid v1.6.0
 	github.com/gorilla/mux v1.8.1
 	github.com/spf13/viper v1.20.1
 	github.com/swaggo/http-swagger v1.3.4
 	github.com/swaggo/swag v1.16.4
+	google.golang.org/protobuf v1.36.12
 	gorm.io/driver/postgres v1.6.0
 	gorm.io/gorm v1.30.0
 )
