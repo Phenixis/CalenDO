@@ -95,7 +95,8 @@ export const useCachedData = <T>(
     return fetchData(true);
   }, [fetchData]);
 
-  // Initial load - try cached data first, then fetch if online
+  // Load whenever the target resource (cacheKey) changes - try cached data
+  // first, then fetch if online. This also covers the initial mount.
   useEffect(() => {
     // First, try to load from cache immediately
     const cachedData = cachedApi.getCachedData<T>(cacheKey);
@@ -103,8 +104,10 @@ export const useCachedData = <T>(
       setData(cachedData);
       setIsStale(!isOnline); // Mark as stale if offline
       setLoading(false);
+    } else {
+      setLoading(true);
     }
-    
+
     // Then fetch fresh data if online
     if (isOnline) {
       fetchData();
@@ -114,7 +117,7 @@ export const useCachedData = <T>(
       setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Only run once on mount
+  }, [cacheKey]); // Re-run whenever the requested resource changes, not just on mount
 
   // Auto refresh interval
   useEffect(() => {
