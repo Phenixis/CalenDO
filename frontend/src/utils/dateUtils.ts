@@ -8,6 +8,18 @@ export const toLocalISODate = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+// Parses a `?date=YYYY-MM-DD` URL param as a local calendar date (not UTC), so
+// e.g. `?date=2026-09-15` always lands on the 15th regardless of the
+// viewer's timezone. Returns null when absent or invalid.
+export const parseLocalDateParam = (value: string | null): Date | null => {
+  if (!value) return null;
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const [, year, month, day] = match;
+  const date = new Date(Number(year), Number(month) - 1, Number(day));
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
 export const formatDate = (date: Date, timeZone?: string): string => {
   return new Intl.DateTimeFormat('en-US', {
     weekday: 'long',
