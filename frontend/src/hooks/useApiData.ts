@@ -1,6 +1,6 @@
 import { useCachedData } from './useCachedData';
 import { cachedApi } from '../services/cachedApi';
-import { Event, Planning } from '../types';
+import { Event, Planning, TramStopDepartures } from '../types';
 import { useCallback } from 'react';
 
 // Hook for events data
@@ -73,6 +73,22 @@ export const useDefaultPlanning = () => {
     {
       autoRefresh: true,
       refreshInterval: 6 * 60 * 60 * 1000, // 6 hours
+      refreshOnWindowFocus: true,
+      refreshOnReconnect: true
+    }
+  );
+};
+
+// Hook for upcoming tram departures near the Triolet campus
+export const useTrams = () => {
+  const fetchTrams = useCallback(() => cachedApi.getTrams(), []);
+
+  return useCachedData<TramStopDepartures[]>(
+    fetchTrams,
+    'tram',
+    {
+      autoRefresh: true,
+      refreshInterval: 30 * 1000, // 30 seconds
       refreshOnWindowFocus: true,
       refreshOnReconnect: true
     }

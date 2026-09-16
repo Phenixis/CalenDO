@@ -1,4 +1,4 @@
-import { Event, Planning } from '../types';
+import { Event, Planning, TramStopDepartures } from '../types';
 import { apiCache } from './cache';
 
 const API_BASE_URL = '/api';
@@ -9,6 +9,7 @@ const CACHE_DURATIONS = {
   PLANNINGS: 7 * 24 * 60 * 60 * 1000, // 1 week
   PLANNING_DETAIL: 7 * 24 * 60 * 60 * 1000, // 1 week
   HEALTH: 5 * 60 * 1000, // 5 minutes
+  TRAM: 20 * 1000, // 20 seconds, matches the backend's own refresh cadence
 };
 
 interface CachedApiOptions {
@@ -195,6 +196,15 @@ class CachedApiService {
     );
   }
 
+  async getTrams(options?: CachedApiOptions): Promise<TramStopDepartures[]> {
+    return this.fetchWithCache<TramStopDepartures[]>(
+      `${API_BASE_URL}/tram`,
+      'tram',
+      CACHE_DURATIONS.TRAM,
+      options
+    );
+  }
+
   // Utility methods
   clearCache(): void {
     apiCache.clear();
@@ -252,5 +262,9 @@ export const api = {
 
   async checkHealth(): Promise<{ status: string }> {
     return cachedApi.checkHealth();
+  },
+
+  async getTrams(): Promise<TramStopDepartures[]> {
+    return cachedApi.getTrams();
   }
 };

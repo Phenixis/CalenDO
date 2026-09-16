@@ -43,3 +43,15 @@ export interface PlanningSelection {
   selectedPlannings: Planning[];
   selectAll: boolean;
 }
+
+export interface TramDeparture {
+  route: string;
+  destination: string;
+  arrival_time: string;
+}
+
+export interface TramStopDepartures {
+  stop_name: string;
+  walk_minutes: number;
+  departures: TramDeparture[];
+}
