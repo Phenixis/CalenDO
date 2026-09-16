@@ -114,6 +114,30 @@ export const findNextBreak = (events: Event[]): Date | null => {
   return null;
 };
 
+// True when the event(s) currently in progress are the last of the day,
+// i.e. nothing else starts before midnight once they end. Used by the
+// countdown page to say "Day End In" instead of "Time Until Break".
+export const isLastEventOfDay = (events: Event[], now: Date = new Date()): boolean => {
+  if (!events || events.length === 0) return false;
+
+  const currentEvents = events.filter(event =>
+    new Date(event.start_time) <= now && new Date(event.end_time) > now
+  );
+  if (currentEvents.length === 0) return false;
+
+  const earliestEndingEvent = currentEvents.reduce((earliest, current) => {
+    const currentEndTime = new Date(current.end_time);
+    const earliestEndTime = new Date(earliest.end_time);
+    return currentEndTime < earliestEndTime ? current : earliest;
+  });
+  const breakStart = new Date(earliestEndingEvent.end_time);
+
+  return !events.some(event => {
+    const start = new Date(event.start_time);
+    return start >= breakStart && isSameDay(start, breakStart);
+  });
+};
+
 export const getTimeUntil = (target: string | Date): { days: number; hours: number; minutes: number; seconds: number } => {
   const targetDate = typeof target === 'string' ? new Date(target) : target;
   const now = new Date();

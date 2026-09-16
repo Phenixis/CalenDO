@@ -5,7 +5,7 @@ import { useCalendar } from '../contexts/CalendarContext';
 import CountdownTimer from '../components/Countdown/CountdownTimer';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 import ErrorDisplay from '../components/UI/ErrorDisplay';
-import { findNextBreak } from '../utils/dateUtils';
+import { findNextBreak, isLastEventOfDay, isSameDay } from '../utils/dateUtils';
 
 const CountdownPage: React.FC = () => {
   const { filteredEvents, selectedPlannings, isLoading, error, refreshEvents } = useCalendar();
@@ -19,10 +19,20 @@ const CountdownPage: React.FC = () => {
   const isInEvent = useMemo(() => {
     if (!filteredEvents) return false;
     const now = new Date();
-    return filteredEvents.some(event => 
+    return filteredEvents.some(event =>
       new Date(event.start_time) <= now && new Date(event.end_time) > now
     );
   }, [filteredEvents]);
+
+  const isLastOfDay = useMemo(() => {
+    return filteredEvents ? isLastEventOfDay(filteredEvents) : false;
+  }, [filteredEvents]);
+
+  // True when the upcoming break carries over to a later calendar day, i.e.
+  // there's nothing left today and the next event is tomorrow (or later).
+  const isNextDay = useMemo(() => {
+    return nextBreakDate ? !isSameDay(nextBreakDate, new Date()) : false;
+  }, [nextBreakDate]);
   
   const toggleFullscreen = useCallback(() => {
     if (!document.fullscreenElement) {
@@ -74,7 +84,11 @@ const CountdownPage: React.FC = () => {
       
       <div className="flex-grow flex flex-col items-center justify-center p-4">
         <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-6xl font-bold text-purple-700 mb-4 sm:mb-6 md:mb-8 text-center">
-          {!nextBreakDate ? "You're in a break!" : isInEvent ? "Time Until Break" : "Break Ends In"}
+          {!nextBreakDate
+            ? "You're in a break!"
+            : isInEvent
+            ? (isLastOfDay ? "Day End In" : "Time Until Break")
+            : (isNextDay ? "Next Day In" : "Break Ends In")}
         </h1>
         
         {selectedPlannings.length > 0 && selectedPlannings.length < 10 && (
