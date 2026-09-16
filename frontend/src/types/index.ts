@@ -43,3 +43,35 @@ export interface PlanningSelection {
   selectedPlannings: Planning[];
   selectAll: boolean;
 }
+
+export interface MenuDish {
+  code: number;
+  ordre: number;
+  libelle: string;
+}
+
+export interface MenuCategory {
+  code: number;
+  libelle: string;
+  ordre: number;
+  plats: MenuDish[];
+}
+
+export interface MenuMeal {
+  code: number;
+  type: 'matin' | 'midi' | 'soir';
+  categories: MenuCategory[];
+}
+
+export interface MenuDay {
+  code: number;
+  date: string; // ISO 8601 (YYYY-MM-DD)
+  repas: MenuMeal[];
+}
+
+export interface RestaurantMenu {
+  restaurant_code: number;
+  restaurant_name: string;
+  restaurant_type: string;
+  days: MenuDay[];
+}

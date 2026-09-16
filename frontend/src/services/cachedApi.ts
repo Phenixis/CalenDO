@@ -1,4 +1,4 @@
-import { Event, Planning } from '../types';
+import { Event, Planning, RestaurantMenu } from '../types';
 import { apiCache } from './cache';
 
 const API_BASE_URL = '/api';
@@ -9,6 +9,7 @@ const CACHE_DURATIONS = {
   PLANNINGS: 7 * 24 * 60 * 60 * 1000, // 1 week
   PLANNING_DETAIL: 7 * 24 * 60 * 60 * 1000, // 1 week
   HEALTH: 5 * 60 * 1000, // 5 minutes
+  MENUS: 60 * 60 * 1000, // 1 hour
 };
 
 interface CachedApiOptions {
@@ -195,6 +196,19 @@ class CachedApiService {
     );
   }
 
+  // Fetches menus for a single ISO date, or an inclusive [start, end] range
+  // when `end` is provided (used to fetch a whole week in one call).
+  async getMenus(start: string, end?: string, options?: CachedApiOptions): Promise<RestaurantMenu[]> {
+    const params = end ? `start=${start}&end=${end}` : `date=${start}`;
+    const cacheKey = end ? `menus_${start}_${end}` : `menus_${start}`;
+    return this.fetchWithCache<RestaurantMenu[]>(
+      `${API_BASE_URL}/menus?${params}`,
+      cacheKey,
+      CACHE_DURATIONS.MENUS,
+      options
+    );
+  }
+
   // Utility methods
   clearCache(): void {
     apiCache.clear();
@@ -252,5 +266,9 @@ export const api = {
 
   async checkHealth(): Promise<{ status: string }> {
     return cachedApi.checkHealth();
+  },
+
+  async getMenus(start: string, end?: string): Promise<RestaurantMenu[]> {
+    return cachedApi.getMenus(start, end);
   }
 };

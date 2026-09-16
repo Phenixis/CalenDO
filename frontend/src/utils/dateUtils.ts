@@ -1,5 +1,13 @@
 import { Event } from '../types';
 
+// Builds a local YYYY-MM-DD string (avoids UTC shifting the day like toISOString would)
+export const toLocalISODate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export const formatDate = (date: Date, timeZone?: string): string => {
   return new Intl.DateTimeFormat('en-US', {
     weekday: 'long',

@@ -1,6 +1,6 @@
 import { useCachedData } from './useCachedData';
 import { cachedApi } from '../services/cachedApi';
-import { Event, Planning } from '../types';
+import { Event, Planning, RestaurantMenu } from '../types';
 import { useCallback } from 'react';
 
 // Hook for events data
@@ -73,6 +73,25 @@ export const useDefaultPlanning = () => {
     {
       autoRefresh: true,
       refreshInterval: 6 * 60 * 60 * 1000, // 6 hours
+      refreshOnWindowFocus: true,
+      refreshOnReconnect: true
+    }
+  );
+};
+
+// Hook for the Montpellier Triolet campus CROUS menus (Resto U + Cafétéria).
+// Pass a single ISO date, or both `start` and `end` for an inclusive range
+// (e.g. to fetch a whole week's menus in one call).
+export const useMenus = (start: string, end?: string) => {
+  const fetchMenus = useCallback(() => cachedApi.getMenus(start, end), [start, end]);
+  const cacheKey = end ? `menus_${start}_${end}` : `menus_${start}`;
+
+  return useCachedData<RestaurantMenu[]>(
+    fetchMenus,
+    cacheKey,
+    {
+      autoRefresh: true,
+      refreshInterval: 60 * 60 * 1000, // 1 hour
       refreshOnWindowFocus: true,
       refreshOnReconnect: true
     }
