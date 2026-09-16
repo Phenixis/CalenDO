@@ -1,17 +1,25 @@
 import React from 'react';
 import { useCalendar } from '../../contexts/CalendarContext';
-import { getDaysInWeek, isSameDay, formatShortDate, getVisibleWeekDays, getEventDaySegment } from '../../utils/dateUtils';
+import { getDaysInWeek, isSameDay, formatShortDate, getVisibleWeekDays, getEventDaySegment, toLocalISODate } from '../../utils/dateUtils';
 import { filterEvents } from '../../utils/searchUtils';
-import { calculateEventPositions, calculateEventHeight, calculateEventTopWithRange, calculateOptimalTimeRange } from '../../utils/eventUtils';
+import { calculateEventPositions, calculateEventHeight, calculateEventTopWithRange, calculateOptimalTimeRange, findLunchGap } from '../../utils/eventUtils';
+import { buildLunchMenuEvent } from '../../utils/menuEventUtils';
+import { useMenus } from '../../hooks/useApiData';
+import { RestaurantMenu } from '../../types';
 import EventCard from '../Event/EventCard';
 import CurrentTimeCursor from './CurrentTimeCursor';
 
 const WeekView: React.FC = () => {
   const { filteredEvents, currentDate, setSelectedEvent, searchFilters } = useCalendar();
-  
+
   const searchFilteredEvents = filterEvents(filteredEvents, searchFilters);
   const allWeekDays = getDaysInWeek(currentDate);
-  
+
+  // Fetch the whole visible week's menus in a single call, then slice per day below
+  const weekStart = toLocalISODate(allWeekDays[0]);
+  const weekEnd = toLocalISODate(allWeekDays[allWeekDays.length - 1]);
+  const { data: weekMenus } = useMenus(weekStart, weekEnd);
+
   // Filter out unused weekend days
   const weekDays = getVisibleWeekDays(allWeekDays, searchFilteredEvents);
   const today = new Date();
@@ -95,11 +103,24 @@ const WeekView: React.FC = () => {
               end_time: segment!.end_time
             }));
 
+          // Find the free time between courses (11h15-14h) to show a fake "lunch
+          // menu" card. Rendered separately (full width) rather than mixed
+          // into timedDisplayEvents, since calculateEventPositions reserves a
+          // column per planning_id and would otherwise squeeze it to half
+          // width for no reason.
+          const dayIso = toLocalISODate(day);
+          const menusForDay: RestaurantMenu[] = (weekMenus ?? []).map(restaurant => ({
+            ...restaurant,
+            days: restaurant.days.filter(d => d.date === dayIso)
+          }));
+          const lunchGap = findLunchGap(timedDisplayEvents, day);
+          const lunchMenuEvent = lunchGap ? buildLunchMenuEvent(lunchGap, menusForDay, day) : null;
+
           // Sort timed events by start time
-          timedDisplayEvents.sort((a, b) => 
+          timedDisplayEvents.sort((a, b) =>
             new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
           );
-          
+
           return (
             <div 
               key={dayIndex} 
@@ -161,14 +182,33 @@ const WeekView: React.FC = () => {
                     }}
                     className="absolute overflow-hidden pr-1"
                   >
-                    <EventCard 
-                      event={event} 
+                    <EventCard
+                      event={event}
                       onClick={() => setSelectedEvent(event)}
                       compact
                     />
                   </div>
                 );
               })}
+
+              {lunchMenuEvent && (() => {
+                const paddingTop = weekHasAllDay ? ALL_DAY_HEIGHT : 0;
+                const top = calculateEventTopWithRange(lunchMenuEvent.start_time, HOUR_HEIGHT, startHour) + paddingTop;
+                const height = calculateEventHeight(lunchMenuEvent.start_time, lunchMenuEvent.end_time, HOUR_HEIGHT);
+                return (
+                  <div
+                    key={lunchMenuEvent.uid}
+                    style={{ top: `${top}px`, height: `${height}px`, left: 0, width: '100%', minHeight: '20px' }}
+                    className="absolute overflow-hidden pr-1"
+                  >
+                    <EventCard
+                      event={lunchMenuEvent}
+                      onClick={() => setSelectedEvent(lunchMenuEvent)}
+                      compact
+                    />
+                  </div>
+                );
+              })()}
             </div>
           );
         })}

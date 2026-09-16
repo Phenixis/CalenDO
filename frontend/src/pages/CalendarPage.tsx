@@ -6,6 +6,8 @@ import WeekView from '../components/Calendar/WeekView';
 import DayView from '../components/Calendar/DayView';
 import SwipeableCalendarContainer from '../components/Calendar/SwipeableCalendarContainer';
 import EventDetail from '../components/Event/EventDetail';
+import MenuDialog from '../components/Menu/MenuDialog';
+import { MENU_PLANNING_ID } from '../utils/menuEventUtils';
 import LoadingSpinner from '../components/UI/LoadingSpinner';
 import ErrorDisplay from '../components/UI/ErrorDisplay';
 import EmptyState from '../components/UI/EmptyState';
@@ -49,7 +51,7 @@ const CalendarPage: React.FC = () => {
       )}
       
       <CalendarHeader />
-      
+
       {isLoading ? (
         <LoadingSpinner size="large" />
       ) : error ? (
@@ -70,10 +72,17 @@ const CalendarPage: React.FC = () => {
       )}
       
       {selectedEvent && (
-        <EventDetail 
-          event={selectedEvent} 
-          onClose={() => setSelectedEvent(null)} 
-        />
+        selectedEvent.planning_id === MENU_PLANNING_ID ? (
+          <MenuDialog
+            event={selectedEvent}
+            onClose={() => setSelectedEvent(null)}
+          />
+        ) : (
+          <EventDetail
+            event={selectedEvent}
+            onClose={() => setSelectedEvent(null)}
+          />
+        )
       )}
     </div>
   );

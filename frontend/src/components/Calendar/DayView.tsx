@@ -1,16 +1,19 @@
 import React from 'react';
 import { useCalendar } from '../../contexts/CalendarContext';
-import { isSameDay, eventOccursOnDay, getEventDaySegment } from '../../utils/dateUtils';
+import { isSameDay, eventOccursOnDay, getEventDaySegment, toLocalISODate } from '../../utils/dateUtils';
 import { filterEvents } from '../../utils/searchUtils';
-import { calculateEventPositions, calculateEventHeight, calculateEventTopWithRange, calculateOptimalTimeRange } from '../../utils/eventUtils';
+import { calculateEventPositions, calculateEventHeight, calculateEventTopWithRange, calculateOptimalTimeRange, findLunchGap } from '../../utils/eventUtils';
+import { buildLunchMenuEvent } from '../../utils/menuEventUtils';
+import { useMenus } from '../../hooks/useApiData';
 import EventCard from '../Event/EventCard';
 import CurrentTimeCursor from './CurrentTimeCursor';
 
 const DayView: React.FC = () => {
   const { filteredEvents, currentDate, setSelectedEvent, searchFilters } = useCalendar();
-  
+  const { data: dayMenus } = useMenus(toLocalISODate(currentDate));
+
   const searchFilteredEvents = filterEvents(filteredEvents, searchFilters);
-  
+
   // Get events for the current day (includes multi-day and overlapping events)
   const dayEvents = searchFilteredEvents.filter(event => eventOccursOnDay(event, currentDate));
 
@@ -28,8 +31,15 @@ const DayView: React.FC = () => {
       end_time: segment!.end_time
     }));
 
+  // Find the free time between courses (11h15-14h) to show a fake "lunch menu"
+  // card. Rendered separately (full width) rather than mixed into
+  // timedDisplayEvents, since calculateEventPositions reserves a column per
+  // planning_id and would otherwise squeeze it to half width for no reason.
+  const lunchGap = findLunchGap(timedDisplayEvents, currentDate);
+  const lunchMenuEvent = lunchGap && dayMenus ? buildLunchMenuEvent(lunchGap, dayMenus, currentDate) : null;
+
   // Sort timed events by start time
-  timedDisplayEvents.sort((a, b) => 
+  timedDisplayEvents.sort((a, b) =>
     new Date(a.start_time).getTime() - new Date(b.start_time).getTime()
   );
   
@@ -113,14 +123,33 @@ const DayView: React.FC = () => {
                   }}
                   className="absolute overflow-hidden"
                 >
-                  <EventCard 
-                    event={event} 
+                  <EventCard
+                    event={event}
                     onClick={() => setSelectedEvent(event)}
                     compact
                   />
                 </div>
               );
             })}
+
+            {lunchMenuEvent && (() => {
+              const paddingTop = allDaySegments.length > 0 ? ALL_DAY_HEIGHT : 0;
+              const top = calculateEventTopWithRange(lunchMenuEvent.start_time, HOUR_HEIGHT, startHour) + paddingTop;
+              const height = calculateEventHeight(lunchMenuEvent.start_time, lunchMenuEvent.end_time, HOUR_HEIGHT);
+              return (
+                <div
+                  key={lunchMenuEvent.uid}
+                  style={{ top: `${top}px`, height: `${height}px`, left: 0, width: '100%', minHeight: '20px' }}
+                  className="absolute overflow-hidden"
+                >
+                  <EventCard
+                    event={lunchMenuEvent}
+                    onClick={() => setSelectedEvent(lunchMenuEvent)}
+                    compact
+                  />
+                </div>
+              );
+            })()}
           </div>
         </div>
       </div>
