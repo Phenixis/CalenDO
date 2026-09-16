@@ -210,6 +210,85 @@ export const calculateEventTopWithRange = (startTime: string, hourHeight: number
 export const calculateCurrentTimePositionWithRange = (hourHeight: number, rangeStartHour: number): number => {
   const now = new Date();
   const currentHour = now.getHours() + now.getMinutes() / 60 + now.getSeconds() / 3600;
-  
+
   return (currentHour - rangeStartHour) * hourHeight;
+};
+
+export interface TimeRange {
+  start: Date;
+  end: Date;
+}
+
+const LUNCH_WINDOW_START_HOUR = 11;
+const LUNCH_WINDOW_START_MINUTE = 15;
+const LUNCH_WINDOW_END_HOUR = 14;
+const LUNCH_WINDOW_END_MINUTE = 0;
+const MIN_LUNCH_GAP_MINUTES = 15;
+
+/**
+ * Finds the free time available for lunch on a given day, clipped to the
+ * [11:15, 14:00] window. The gap is the window minus whatever courses
+ * overlap it:
+ * - a course ending at 13:00 followed by one starting at 14:00 -> [13:00, 14:00]
+ * - a course ending at 11:30 followed by one starting at 13:00 -> [11:30, 13:00]
+ * - a course ending at 11:00 followed by one starting at 14:00 -> [11:15, 14:00]
+ * Returns null if there's no meaningful (>=15min) free time in the window,
+ * e.g. a course spans straight through it.
+ */
+export const findLunchGap = (dayEvents: Event[], day: Date): TimeRange | null => {
+  const windowStart = new Date(day);
+  windowStart.setHours(LUNCH_WINDOW_START_HOUR, LUNCH_WINDOW_START_MINUTE, 0, 0);
+  const windowEnd = new Date(day);
+  windowEnd.setHours(LUNCH_WINDOW_END_HOUR, LUNCH_WINDOW_END_MINUTE, 0, 0);
+
+  // Clip each event to the window, keeping only those that actually overlap it
+  const busy: TimeRange[] = dayEvents
+    .filter(event => !event.all_day)
+    .map(event => ({ start: new Date(event.start_time), end: new Date(event.end_time) }))
+    .filter(({ start, end }) => start < windowEnd && end > windowStart)
+    .map(({ start, end }) => ({
+      start: start < windowStart ? windowStart : start,
+      end: end > windowEnd ? windowEnd : end
+    }))
+    .sort((a, b) => a.start.getTime() - b.start.getTime());
+
+  // Merge overlapping/adjacent busy intervals (e.g. parallel course groups)
+  const merged: TimeRange[] = [];
+  for (const range of busy) {
+    const last = merged[merged.length - 1];
+    if (last && range.start.getTime() <= last.end.getTime()) {
+      if (range.end.getTime() > last.end.getTime()) {
+        last.end = range.end;
+      }
+    } else {
+      merged.push({ ...range });
+    }
+  }
+
+  // Complement of the busy intervals within the window is the free time
+  const free: TimeRange[] = [];
+  let cursor = windowStart;
+  for (const range of merged) {
+    if (range.start.getTime() > cursor.getTime()) {
+      free.push({ start: cursor, end: range.start });
+    }
+    if (range.end.getTime() > cursor.getTime()) {
+      cursor = range.end;
+    }
+  }
+  if (cursor.getTime() < windowEnd.getTime()) {
+    free.push({ start: cursor, end: windowEnd });
+  }
+
+  if (free.length === 0) return null;
+
+  const largest = free.reduce((a, b) =>
+    (b.end.getTime() - b.start.getTime()) > (a.end.getTime() - a.start.getTime()) ? b : a
+  );
+
+  if (largest.end.getTime() - largest.start.getTime() < MIN_LUNCH_GAP_MINUTES * 60 * 1000) {
+    return null;
+  }
+
+  return largest;
 };
